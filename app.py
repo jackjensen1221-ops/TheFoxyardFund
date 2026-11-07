@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -15,38 +16,138 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Professional Fintech CSS & Clean Dark Styling
+# Dark-Emerald Modern Clean Trading Terminal Token Injection
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
+    /* Dark Slate & Emerald Color System */
+    :root {
+        --bg-main: #0b0f12;
+        --bg-panel: #12181f;
+        --bg-card: #18202a;
+        --border-color: #212d3b;
+        --accent-emerald: #77fc18;
+        --text-primary: #f0f4f8;
+        --text-muted: #8a9bb0;
+        --danger-crimson: #ff4d4d;
+    }
+
+    .main {
+        background-color: var(--bg-main) !important;
+        color: var(--text-primary) !important;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+    
     section[data-testid="stSidebar"] {
-        background-color: #11161d !important;
-        border-right: 1px solid #30363d !important;
+        background-color: #0d1217 !important;
+        border-right: 1px solid var(--border-color) !important;
     }
+
+    /* Monospace formatting for financial data */
+    .stMetric, .stDataFrame, table, th, td, [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {
+        font-family: "SF Mono", Monaco, Consolas, "Fira Code", monospace !important;
+    }
+
+    /* Custom Terminal Cards */
     .stMetric {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        padding: 12px;
-        border-radius: 8px;
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
     }
-    .psych-card {
-        background-color: #1f1a1d;
-        border-left: 4px solid #e74c3c;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
     }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.75rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        color: var(--text-muted) !important;
+    }
+
+    /* Primary Terminal Buttons */
+    .stButton > button, button[kind="primary"] {
+        background-color: var(--accent-emerald) !important;
+        color: #0b0f12 !important;
+        border: none !important;
+        border-radius: 6px !important;
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+    }
+    .stButton > button:hover, button[kind="primary"]:hover {
+        box-shadow: 0 0 12px rgba(119, 252, 24, 0.4) !important;
+        transform: translateY(-1px);
+    }
+
+    /* High-Density Data Tables */
+    dataframe, .dataframe {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        background-color: var(--bg-card) !important;
+    }
+    th {
+        background-color: #16202c !important;
+        color: var(--text-primary) !important;
+        font-size: 0.78rem !important;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+    td {
+        border-bottom: 1px solid #1a2533 !important;
+        font-size: 0.82rem !important;
+    }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background-color: var(--bg-main);
+        border-bottom: 1px solid var(--border-color);
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 6px 6px 0 0 !important;
+        color: var(--text-muted);
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #1a2533 !important;
+        color: var(--accent-emerald) !important;
+        border-bottom: 2px solid var(--accent-emerald) !important;
+    }
+
+    /* Collapsible Panels */
+    .streamlit-expanderHeader {
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 6px !important;
+        color: var(--text-primary) !important;
+    }
+
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 MIN_START = 2005
 PICK_RULES = [k for k in RULES if k != "random"]
-DEFAULTS = dict(universe="large_cap", nyse_n=250, custom_tickers="AAPL, NVDA, MSFT, TSLA, AMZN",
-                bench_key="sp500", secondary_benchs=["nasdaq100"], custom_bench="QQQ", start_year=2012, rule="prior_year_winner",
-                top_n=1, initial=10_000, annual_contrib=10_000, stop_pct=15, trailing=False, after_stop="cash",
-                cost_bps=5, tax_pct=0, reinvest_dividends=False, nl_text="", basket_tickers="AAPL, MSFT, CASH", show_principal=True,
-                chart_metric="Portfolio Value ($)", ai_mode=False, fund_name="Apex Alpha Growth Fund",
-                fund_tickers="AAPL, NVDA, MSFT, AMZN, GOOGL")
+DEFAULTS = dict(
+    universe="large_cap", nyse_n=250, custom_tickers="AAPL, NVDA, MSFT, TSLA, AMZN",
+    bench_key="sp500", secondary_benchs=["nasdaq100"], custom_bench="QQQ", start_year=2012, rule="prior_year_winner",
+    top_n=1, initial=10_000, annual_contrib=10_000, stop_pct=15, trailing=False, after_stop="cash",
+    cost_bps=5, tax_pct=0, reinvest_dividends=False, nl_text="", basket_tickers="AAPL, MSFT, CASH", show_principal=True,
+    chart_metric="Portfolio Value ($)", ai_mode=False, fund_name="Apex Alpha Growth Fund",
+    fund_tickers="AAPL, NVDA, MSFT, AMZN, GOOGL"
+)
 for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 S = st.session_state
@@ -82,12 +183,12 @@ def apply_nl():
         S["nl_msg"] = ("error", f"Couldn't parse prompt with Gemini: {e}", "")
 
 
-# ---------------- Sidebar Controls ----------------
+# ---------------- Sidebar Control Center ----------------
 sb = st.sidebar
 sb.title("⚙️ Terminal Config")
 sb.markdown("---")
 
-sb.toggle("🤖 Enable Gemini AI Mode", key="ai_mode", help="Turn on for natural language prompts & portfolio critiques.")
+sb.toggle("🤖 Enable Gemini AI Engine", key="ai_mode", help="Turn on for natural language prompts & AI critiques.")
 
 with sb.expander("🌐 Asset Universe & Benchmarks", expanded=True):
     sb.selectbox("Asset Universe", list(UNIVERSES), format_func=UNIVERSES.get, key="universe")
@@ -96,9 +197,9 @@ with sb.expander("🌐 Asset Universe & Benchmarks", expanded=True):
     elif S["universe"] == "nyse":
         sb.select_slider("NYSE Liquid Tier", [100, 250, 500, 1000], key="nyse_n")
     sb.selectbox("Primary Benchmark", list(BENCHMARKS), format_func=lambda k: BENCHMARKS[k]["label"], key="bench_key")
-    sb.multiselect("Secondary Overlays", list(BENCHMARKS), format_func=lambda k: BENCHMARKS[k]["label"], key="secondary_benchs")
+    sb.multiselect("Secondary Benchmark Overlays", list(BENCHMARKS), format_func=lambda k: BENCHMARKS[k]["label"], key="secondary_benchs")
 
-with sb.expander("📈 Strategy & Capital Rules", expanded=False):
+with sb.expander("📈 Strategy & DCA Rules", expanded=False):
     sb.selectbox("Selection Rule", PICK_RULES, format_func=RULES.get, key="rule")
     if S["rule"] != "custom_basket":
         sb.slider("Top N Positions", 1, 10, key="top_n")
@@ -106,16 +207,16 @@ with sb.expander("📈 Strategy & Capital Rules", expanded=False):
     sb.number_input("Initial Capital ($)", 100, 10_000_000, step=1000, key="initial")
     sb.number_input("Annual DCA ($)", 0, 100_000, step=500, key="annual_contrib")
 
-with sb.expander("🛡️ Risk & Friction Controls", expanded=False):
+with sb.expander("🛡️ Risk & Frictions", expanded=False):
     sb.slider("Stop-Loss (%)", 0, 50, key="stop_pct")
     sb.checkbox("Trailing Stop-Loss", key="trailing")
     sb.slider("Execution Cost (bps)", 0, 50, key="cost_bps")
-    sb.checkbox("Reinvest Dividends (DRIP)", key="reinvest_dividends", help="Toggle off to payouts as un-reinvested cash stream.")
-    sb.checkbox("Show Invested Principal", key="show_principal")
+    sb.checkbox("Reinvest Dividends (DRIP)", key="reinvest_dividends")
+    sb.checkbox("Show Total Invested Principal", key="show_principal")
 
 # ---------------- Main Dashboard Layout ----------------
-st.title("📊 Institutional Quantitative Terminal")
-st.markdown("Advanced multi-asset strategy simulator with dividend payout tracking, custom mutual fund sandbox, and multi-benchmark attribution.")
+st.title("⚡ Institutional Quantitative Terminal")
+st.markdown("Professional wealth management platform: multi-benchmark backtesting, custom mutual fund construction, and macro risk execution.")
 
 ai_enabled = S.get("ai_mode", False)
 has_key = bool(get_api_key())
@@ -158,9 +259,11 @@ try:
     min_ok = max(MIN_START, fv.year + (0 if fv.dayofyear <= 10 else 1))
     start_year = max(S["start_year"], min_ok)
 
-    params = dict(rule=S["rule"], top_n=S["top_n"], stop_pct=S["stop_pct"], trailing=S["trailing"],
-                  after_stop=S["after_stop"], cost_bps=S["cost_bps"], tax_rate=S["tax_pct"] / 100,
-                  initial=S["initial"], annual_contribution=S["annual_contrib"], reinvest_dividends=S["reinvest_dividends"])
+    params = dict(
+        rule=S["rule"], top_n=S["top_n"], stop_pct=S["stop_pct"], trailing=S["trailing"],
+        after_stop=S["after_stop"], cost_bps=S["cost_bps"], tax_rate=S["tax_pct"] / 100,
+        initial=S["initial"], annual_contribution=S["annual_contrib"], reinvest_dividends=S["reinvest_dividends"]
+    )
 
     res = run_strategy(prices, bench, start_year, **params)
     if res is None:
@@ -173,79 +276,80 @@ try:
     roll = rolling_metrics(eq, be)
     attribution = factor_attribution(eq, be)
 
-    # Executive Summary Metrics
+    # Executive Summary Metrics Card Grid
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Stock Equity Value", f"${ms['Final value']:,.2f}", f"{ms['CAGR']*100:+.2f}% CAGR")
-    m2.metric(f"Benchmark ({bench})", f"${mb['Final value']:,.2f}", f"{mb['CAGR']*100:+.2f}% CAGR")
-    m3.metric("Un-reinvested Cash Dividends", f"${total_cash_divs:,.2f}", "Accumulated Cash" if not S["reinvest_dividends"] else "Reinvested (DRIP)")
-    m4.metric("Sharpe Ratio", f"{ms.get('Sharpe (rf=0)', 0.0):.2f}", f"Corr: {attribution['Correlation']:.2f}")
+    m2.metric(f"Primary Benchmark ({bench})", f"${mb['Final value']:,.2f}", f"{mb['CAGR']*100:+.2f}% CAGR")
+    m3.metric("Cash Dividends Collected", f"${total_cash_divs:,.2f}", "Un-reinvested" if not S["reinvest_dividends"] else "DRIP Active")
+    m4.metric("Sharpe Ratio", f"{ms.get('Sharpe (rf=0)', 0.0):.2f}", f"Alpha: {attribution['Alpha']*100:+.2f}%")
 
     if ai_enabled and has_key:
-        with st.expander("🧠 Gemini AI Portfolio Review"):
+        with st.expander("🧠 Gemini AI Portfolio Commentary"):
             with st.spinner("Analyzing risk profile..."):
                 st.markdown(nlp.generate_ai_commentary(ms, RULES.get(S["rule"], S["rule"]), get_api_key()))
 
-    # Main Chart View
+    # Main Chart View Selector
     col_hdr, col_drop = st.columns([3, 1])
-    col_hdr.markdown("### Performance Trajectory")
+    col_hdr.markdown("### 📈 Performance Trajectory")
     col_drop.selectbox("Metric View", ["Portfolio Value ($)", "Rolling 1Y CAGR (%)", "Rolling 1Y Volatility (%)", "Drawdown (%)"], key="chart_metric", label_visibility="collapsed")
     
     fig = go.Figure()
     metric_mode = S["chart_metric"]
 
     if metric_mode == "Portfolio Value ($)":
-        fig.add_scatter(x=eq.index, y=eq, name="Strategy Stock Equity", line=dict(width=3, color="#2ecc71"))
+        fig.add_scatter(x=eq.index, y=eq, name="Strategy Equity", line=dict(width=3, color="#77fc18"))
         if not S["reinvest_dividends"]:
             fig.add_scatter(x=eq.index, y=eq + div_curve, name="Total Wealth (Equity + Cash Dividends)", line=dict(width=2, color="#f1c40f", dash="dot"))
         if S["show_principal"] and not principal.empty:
             fig.add_scatter(x=principal.index, y=principal, name="Principal Invested", line=dict(width=1.5, dash="dash", color="#e67e22"))
-        fig.add_scatter(x=be.index, y=be, name=f"Primary Benchmark ({bench})", line=dict(width=1.8, color="#3498db"))
+        fig.add_scatter(x=be.index, y=be, name=f"Benchmark ({bench})", line=dict(width=1.8, color="#3498db"))
         for b_name, b_ser in sec_bench_series.items():
             scaled_b = b_ser.reindex(eq.index).ffill()
             scaled_b = scaled_b / scaled_b.iloc[0] * S["initial"]
             fig.add_scatter(x=scaled_b.index, y=scaled_b, name=f"Overlay: {b_name}", line=dict(width=1.2, dash="dot"))
         yaxis_format = "$"
     elif metric_mode == "Rolling 1Y CAGR (%)":
-        fig.add_scatter(x=roll["strat_cagr"].index, y=roll["strat_cagr"], name="Strategy CAGR", line=dict(width=2, color="#2ecc71"))
+        fig.add_scatter(x=roll["strat_cagr"].index, y=roll["strat_cagr"], name="Strategy CAGR", line=dict(width=2, color="#77fc18"))
         fig.add_scatter(x=roll["bench_cagr"].index, y=roll["bench_cagr"], name="Benchmark CAGR", line=dict(width=1.5, color="#3498db", dash="dot"))
         yaxis_format = ".0%"
     elif metric_mode == "Rolling 1Y Volatility (%)":
-        fig.add_scatter(x=roll["strat_vol"].index, y=roll["strat_vol"], name="Strategy Volatility", line=dict(width=2, color="#e74c3c"))
+        fig.add_scatter(x=roll["strat_vol"].index, y=roll["strat_vol"], name="Strategy Volatility", line=dict(width=2, color="#ff4d4d"))
         fig.add_scatter(x=roll["bench_vol"].index, y=roll["bench_vol"], name="Benchmark Volatility", line=dict(width=1.5, color="#3498db", dash="dot"))
         yaxis_format = ".0%"
     else:
-        fig.add_scatter(x=eq.index, y=drawdown(eq), name="Strategy Drawdown", line=dict(width=1.5, color="#e74c3c"), fill="tozeroy")
+        fig.add_scatter(x=eq.index, y=drawdown(eq), name="Strategy Drawdown", line=dict(width=1.5, color="#ff4d4d"), fill="tozeroy")
         yaxis_format = ".0%"
 
-    fig.update_layout(template="plotly_dark", height=440, margin=dict(l=20, r=20, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.update_layout(
+        template="plotly_dark",
+        height=420,
+        margin=dict(l=20, r=20, t=10, b=10),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
     st.plotly_chart(fig, use_container_width=True)
 
-    # 5-Tab Layout featuring the new "💰 Dividend Cash Income" tab
+    # 5-Tab Functional Modular Architecture
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "💰 Dividend Cash Income",
-        "📋 Annual & Asset Breakdown", 
+        "📋 Annual Breakdown", 
         "📈 Factor Attribution", 
         "🏗️ Mutual Fund Architect", 
-        "🧠 Behavioral Risk Coach"
+        "🧮 Position & Macro Tools"
     ])
 
     with tab1:
-        st.markdown("### 💰 Dividend Cash Payout & Income Stream Analysis")
-        st.markdown("Tracking cash generated from un-reinvested dividends over time.")
-        
+        st.markdown("### 💰 Dividend Cash Income Stream")
         d_col1, d_col2, d_col3 = st.columns(3)
         last_yr_div = annual_divs["Annual Dividend Income ($)"].iloc[-1] if not annual_divs.empty else 0.0
-        d_col1.metric("Total Cumulative Cash Payout", f"${total_cash_divs:,.2f}")
+        d_col1.metric("Cumulative Cash Payout", f"${total_cash_divs:,.2f}")
         d_col2.metric("Latest Annual Cash Income", f"${last_yr_div:,.2f}")
-        d_col3.metric("Est. Monthly Cash Stream", f"${last_yr_div / 12:,.2f}")
+        d_col3.metric("Est. Monthly Stream", f"${last_yr_div / 12:,.2f}")
 
         div_fig = go.Figure()
-        div_fig.add_scatter(x=div_curve.index, y=div_curve, name="Cumulative Dividend Cash", line=dict(width=3, color="#f1c40f"), fill="tozeroy")
-        div_fig.update_layout(template="plotly_dark", height=320, title="Cumulative Cash Dividends Collected ($)", yaxis_tickprefix="$")
+        div_fig.add_scatter(x=div_curve.index, y=div_curve, name="Cumulative Cash", line=dict(width=3, color="#f1c40f"), fill="tozeroy")
+        div_fig.update_layout(template="plotly_dark", height=300, yaxis_tickprefix="$")
         st.plotly_chart(div_fig, use_container_width=True)
-        
-        st.markdown("#### Annual Cash Payout Breakdown")
-        st.dataframe(annual_divs.style.format({"Year": "{:d}", "Annual Dividend Income ($)": "${:,.2f}"}), use_container_width=True)
 
     with tab2:
         c_t1, c_t2 = st.columns(2)
@@ -253,14 +357,14 @@ try:
             st.markdown("#### Annual Performance Table")
             st.dataframe(yrs.style.format({"Year": "{:d}", "Strategy": "{:+.1%}", "Benchmark": "{:+.1%}"}), use_container_width=True)
         with c_t2:
-            st.markdown("#### Asset Return Summary")
+            st.markdown("#### Constituent Return Summary")
             if not asset_metrics.empty:
                 st.dataframe(asset_metrics.style.format({"Final Value ($)": "${:,.2f}", "Annualized CAGR": "{:+.2%}"}), use_container_width=True)
             else:
                 st.info("No asset metrics available for this rule configuration.")
 
     with tab3:
-        st.markdown("### Quantitative Factor Regression")
+        st.markdown("### Quantitative Factor Attribution & Beta Linear Regression")
         f1, f2, f3, f4 = st.columns(4)
         f1.metric("Alpha", f"{attribution['Alpha']*100:+.2f}%")
         f2.metric("Beta", f"{attribution['Beta']:.2f}")
@@ -281,7 +385,7 @@ try:
                 with c_w[idx % len(c_w)]:
                     fund_weights[t] = st.slider(f"{t} Weight", 0.0, 1.0, 1.0 / len(fund_ticker_list), 0.05, key=f"w_{t}")
             
-            fund_prices = data.load_many(fund_ticker_list, "Fetching custom fund data")
+            fund_prices = data.load_many(fund_ticker_list, "Fetching fund prices")
             if not fund_prices.empty:
                 f_res = run_custom_fund(fund_prices, fund_weights, start_year, S["initial"], S["annual_contrib"])
                 if f_res:
@@ -289,24 +393,33 @@ try:
                     f_ms = metrics(f_eq)
                     
                     fm_a, fm_b, fm_c = st.columns(3)
-                    fm_a.metric("Fund Final Value", f"${f_ms['Final value']:,.2f}", f"{f_ms['CAGR']*100:+.2f}% CAGR")
+                    fm_a.metric("Fund Value", f"${f_ms['Final value']:,.2f}", f"{f_ms['CAGR']*100:+.2f}% CAGR")
                     fm_b.metric("Fund Sharpe", f"{f_ms['Sharpe (rf=0)']:.2f}")
                     fm_c.metric("Fund Max Drawdown", pct(f_ms["Max drawdown"]))
                     
                     ffig = go.Figure()
-                    ffig.add_scatter(x=f_eq.index, y=f_eq, name=S["fund_name"], line=dict(width=2.5, color="#9b59b6"))
+                    ffig.add_scatter(x=f_eq.index, y=f_eq, name=S["fund_name"], line=dict(width=2.5, color="#77fc18"))
                     ffig.add_scatter(x=be.index, y=be, name=f"Benchmark ({bench})", line=dict(width=1.5, color="#3498db", dash="dot"))
-                    ffig.update_layout(template="plotly_dark", height=320, margin=dict(l=20, r=20, t=10, b=10), yaxis_tickprefix="$")
+                    ffig.update_layout(template="plotly_dark", height=320, yaxis_tickprefix="$")
                     st.plotly_chart(ffig, use_container_width=True)
 
     with tab5:
-        st.markdown("### Behavioral Risk & Emotional Vulnerability Audit")
-        max_dd = abs(ms["Max drawdown"])
-        vol = ms["Volatility"]
-        if max_dd > 0.30:
-            st.markdown(f'<div class="psych-card"><h4>⚠️ High Loss Aversion Risk (Max Drawdown: {max_dd:.1%})</h4><p>Exceeds the 30% threshold where panic selling historically spikes.</p></div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div style="background-color: #162621; border-left: 4px solid #2ecc71; padding: 15px; border-radius: 4px;"><h4 style="color: #2ecc71;">✅ Moderate Drawdown ({max_dd:.1%})</h4><p>Within comfortable behavioral tolerance bands.</p></div>', unsafe_allow_html=True)
+        st.markdown("### Position Size & Risk Calculator")
+        p1, p2, p3 = st.columns(3)
+        acct_bal = p1.number_input("Account Balance ($)", value=100000, step=5000)
+        risk_pct = p2.slider("Risk Tolerance (%)", 0.5, 5.0, 2.0, 0.1)
+        entry_price = p3.number_input("Entry Price ($)", value=150.0, step=1.0)
+        stop_price = st.number_input("Stop Loss Price ($)", value=140.0, step=1.0)
+        
+        amt_at_risk = acct_bal * (risk_pct / 100.0)
+        per_share_risk = max(entry_price - stop_price, 0.01)
+        shares_to_buy = int(amt_at_risk / per_share_risk)
+        pos_size = shares_to_buy * entry_price
+        
+        rc1, rc2, rc3 = st.columns(3)
+        rc1.metric("Max Capital at Risk", f"${amt_at_risk:,.2f}")
+        rc2.metric("Ideal Position Units", f"{shares_to_buy:,} Shares")
+        rc3.metric("Total Position Size", f"${pos_size:,.2f}")
 
 except Exception as e:
     st.error(f"Runtime Exception: {e}")
